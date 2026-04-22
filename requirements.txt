@@ -2,3 +2,4 @@ telethon
 yt-dlp
 aiohttp
 aiosqlite
+python-dotenv
