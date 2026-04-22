@@ -141,8 +141,8 @@ class Database:
 # ==============================================================================
 API_ID = os.environ.get("API_ID", "23877053")
 API_HASH = os.environ.get("API_HASH", "989c360358b981dae46a910693ab2f4c")
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "BOT_TOKEN")
-ADMIN_ID = int(os.environ.get("ADMIN_ID", "6646404639"))
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "8665329924:AAG2N91CX9wMPaYLYc062uPVhMOfxdERZDo")
+ADMIN_ID = int(os.environ.get("ADMIN_ID", "8770379893"))
 COOKIE_FILE_PATH = 'cookies.txt'
 IS_ARIA2C_AVAILABLE = shutil.which('aria2c') is not None
 
