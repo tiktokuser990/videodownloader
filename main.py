@@ -245,7 +245,7 @@ async def start_handler(event):
         await db.add_user(user_id)
     
     await event.reply(
-        '👋 **မင်္ဂလာပါ! Hub Downloader Bot မှ ကြိုဆိုပါတယ်။**\n\n'
+        '👋 **မင်္ဂလာပါ! Team 7 Downloader Bot မှ ကြိုဆိုပါတယ်။**\n\n'
         '**Down ခြင်တဲ့ Video link ကိုပေးပို့ပါ**'
     )
 
@@ -607,7 +607,7 @@ async def main_message_handler(event):
         return await event.reply(join_msg, buttons=[Button.url("👉 Channel ကို Join ရန် 👈", invite_link)])
 
     if not uploader.is_connected() or not await uploader.is_user_authorized():
-        return await evply("⚠️ Bot ကို ပြုပြင်ထိန်းသိမ်းနေပါသည် Admin ကိုဆက်သွယ်ပါ @Hub_Offical")
+        return await evply("⚠️ Bot ကို ပြုပြင်ထိန်းသိမ်းနေပါသည် Admin ကိုဆက်သွယ်ပါ @thuyaaungzaw")
     
     task_id = f"{user_id}_{int(time.time() * 1000)}"
     msg = await event.reply("🔎 **သင်၏ Link ကို စစ်ဆေးနေပါသည်...**")
@@ -881,7 +881,7 @@ async def handle_video_download(task_id, quality):
             await status_message.edit("✅ **Download ပြီးပါပြီ**\n\n⬆️ ယခု Telegram သို့ တင်နေပါသည်...", buttons=None)
             
             file_size_str = human_readable_size(file_size)
-            final_caption = f"**{title}**\n\n💾 **Size:** `{file_size_str}`\n\n**Bot အများကြီးထဲမှဒီBot လေးကိုရွေးပြီးအသုံးပြုလို့ များစွာပိတီဖြစ်မိပါတယ် ဒီထက်ပိုကောင်းမွန်အောင် အများကြီးကြိုးစားပါအုံးမယ်ဗျာ \n\n**╔═◆အကူအညီရယူရန်\n╚═════◆Bot Owner @Hub_Offical "
+            final_caption = f"**{title}**\n\n💾 **Size:** `{file_size_str}`\n\n**Bot အများကြီးထဲမှဒီBot လေးကိုရွေးပြီးအသုံးပြုလို့ များစွာပိတီဖြစ်မိပါတယ် ဒီထက်ပိုကောင်းမွန်အောင် အများကြီးကြိုးစားပါအုံးမယ်ဗျာ \n\n**╔═◆အကူအညီရယူရန်\n╚═════◆Bot Owner @thuyaaungzaw "
             sender_client, destination = bot, context['user_id']
             
             if context['user_id'] == ADMIN_ID:
@@ -935,7 +935,7 @@ async def handle_video_download(task_id, quality):
                 attrs = [DocumentAttributeAudio(
                     duration=duration,
                     title=title,  # သီချင်းခေါင်းစဉ်
-                    performer="Hub Downloader" # Artist နေရာမှာ ပြမည့်အမည် (ကြိုက်တာပြောင်းလို့ရပါတယ်)
+                    performer=Team 7 Downloader" # Artist နေရာမှာ ပြမည့်အမည် (ကြိုက်တာပြောင်းလို့ရပါတယ်)
                 )]
             else:
                 attrs = []
