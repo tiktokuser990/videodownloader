@@ -1,7 +1,7 @@
 # ==============================================================================
 # ===               TELEGRAM ADVANCED DOWNLOADER BOT SCRIPT                  ===
 # ===           FEATURE RICH, USER-FRIENDLY & ADMIN CONTROLS               ===
-# ===      VERSION 5.2.0 - NO FORCE-JOIN REQUIREMENT - RAILWAY READY      ===
+# ===      VERSION 5.2.0 - ENHANCED ADMIN NOTIFICATIONS & CLEAN UI         ===
 # ==============================================================================
 
 import os
@@ -69,8 +69,10 @@ class Database:
             ''')
             
             defaults = {
+                'PRIVATE_CHANNEL_ID': '-1000000000000', # Force-Join Channel ID
                 'UPLOAD_CHANNEL_ID': '-1000000000000',  # Upload Channel ID
-                'UPLOAD_CHANNEL_INVITE_LINK': 'https://t.me/your_upload_channel_link',
+                'PRIVATE_CHANNEL_INVITE_LINK': 'https://t.me/your_invite_link',
+                'UPLOAD_CHANNEL_INVITE_LINK': 'https://t.me/your_upload_channel_link', # New Setting
                 'MAX_CONCURRENT_DOWNLOADS': '10'
             }
             for key, value in defaults.items():
@@ -215,11 +217,22 @@ def cleanup_downloads():
         except OSError as e:
             logger.error(f"ရှင်းလင်းနေစဉ် အမှားအယွင်းဖြစ်ပေါ်: {f}: {e}")
 
-# Force-Join check ကို လုံးဝ bypass လုပ်ပြီး အမြဲ True ပြန်ပေးမည်
 async def is_user_subscribed(user_id):
-    # Channel join requirement ကို ဖယ်ရှားလိုက်ပါပြီ
-    # မည်သူမဆို bot ကို အသုံးပြုခွင့်ရှိသည်
-    return True
+    if user_id == ADMIN_ID: return True
+    try:
+        # This function specifically checks the FORCE-JOIN channel
+        channel_id_str = await db.get_setting('PRIVATE_CHANNEL_ID')
+        if not channel_id_str or channel_id_str == '-1000000000000': 
+            logger.warning("Force-Join Channel ID is not set. Subscription check skipped.")
+            return True # If not set, allow access by default
+        channel_id = int(channel_id_str)
+        await bot(GetParticipantRequest(channel=channel_id, participant=user_id))
+        return True
+    except UserNotParticipantError:
+        return False
+    except Exception as e:
+        logger.error(f"Subscription စစ်ဆေးမရပါ (User: {user_id}): {e}")
+        return False
 
 # ==============================================================================
 # --- User Commands ---
@@ -233,7 +246,7 @@ async def start_handler(event):
     
     await event.reply(
         '👋 **မင်္ဂလာပါ! Hub Downloader Bot မှ ကြိုဆိုပါတယ်။**\n\n'
-        '**ဒေါင်းလုဒ်လုပ်ချင်တဲ့ Video/Song Link ကိုပေးပို့ပါ**'
+        '**Down ခြင်တဲ့ Video link ကိုပေးပို့ပါ**'
     )
 
 @bot.on(events.NewMessage(pattern='/help', func=lambda e: e.is_private))
@@ -243,7 +256,8 @@ async def help_handler(event):
         '1. ဒေါင်းလုဒ်ဆွဲလိုသော ဗီဒီယို (သို့) သီချင်း၏ Link ကို Bot ထဲသို့ တိုက်ရိုက်ထည့်ပါ။\n\n'
         '2. Bot မှ Quality ရွေးချယ်ရန် Button များ ပြပေးပါလိမ့်မည်။\n\n'
         '3. မိမိနှစ်သက်ရာ Quality ကို ရွေးချယ်ပြီး ဒေါင်းလုဒ်ဆွဲနိုင်ပါသည်။\n\n'
-        '4.**ဒေါင်းနိုင်သော အရာများ**\n╔══⍟\n╠═⍟TikTok \n╠═⍟ Facebook \n╠═⍟ Instagram \n╠═⍟ YouTube \n╠═⍟ VK \n╠═⍟ PronHub \n╠═⍟ Pinterest\n╠═⍟ Twitter (X)\n╚═════⍟'
+        '4.**ဒေါင်းနိုင်သော အရာများ**\n╔══⍟\n╠═⍟Tiktok \n╠═⍟ Facebook \n╠═⍟ Instgram \n╠═⍟ YouTube \n╠═⍟ VK \n╠═⍟ PronHub \n╠═⍟ Pinterest\n╠═⍟ Twitter (X)\n╚═════⍟\n'
+        '👉 Bot ကို အသုံးပြုရန် Channel ကို Join ရန်လိုအပ်ပါသည်။'
     )
 
 @bot.on(events.NewMessage(pattern='/stats', func=lambda e: e.is_private))
@@ -324,7 +338,7 @@ async def broadcast_message_task(event, message_to_forward):
         except FloodWaitError as fwe:
             await admin_status_msg.edit(f"Flood wait for {fwe.seconds} seconds... Pausing broadcast.")
             await asyncio.sleep(fwe.seconds)
-            try:
+            try: # Retry after wait
                 await bot.forward_messages(
                     entity=user_id,
                     messages=message_to_forward.id,
@@ -337,7 +351,7 @@ async def broadcast_message_task(event, message_to_forward):
             fail_count += 1
             logger.error(f"Broadcast error to user {user_id}: {e}")
 
-        if (i + 1) % 20 == 0:
+        if (i + 1) % 20 == 0: # Update status every 20 users
             try:
                 await admin_status_msg.edit(
                     f"📢 **Broadcasting...**\n\n"
@@ -384,12 +398,15 @@ async def admin_panel_handler(event, edit=False):
 async def show_settings_menu(event):
     settings_text = (
         "⚙️ **Bot Settings**\n\n"
+        f"╔══⍟**📢 Force-Join Channel ID:** `{await db.get_setting('PRIVATE_CHANNEL_ID')}`\n"
+        f"╚══⍟**🔗 Force-Join Invite Link:** `{await db.get_setting('PRIVATE_CHANNEL_INVITE_LINK')}`\n\n"
         f"╔══⍟**📤 Upload Channel ID:** `{await db.get_setting('UPLOAD_CHANNEL_ID')}`\n"
         f"╚══⍟**🔗 Upload Channel Invite Link:** `{await db.get_setting('UPLOAD_CHANNEL_INVITE_LINK')}`\n\n"
         f"**⚡️ Max Downloads:** `{await db.get_setting('MAX_CONCURRENT_DOWNLOADS')}`"
     )
     settings_buttons = [
-        [Button.inline("📤 Set Upload Channel ID", b"admin:set_upload_channel_id"), Button.inline("🔗 Upload Invite Link", b"admin:set_upload_invite_link")],
+        [Button.inline("🆔 Force-Join ID", b"admin:set_force_join_id"), Button.inline("🔗 Set Force-Join Link", b"admin:set_invite_link")],
+        [Button.inline("📤 Set Upload Channel ID", b"admin:set_upload_channel_id"), Button.inli("🔗 Upload Invite Link", b"admin:set_upload_invite_link")],
         [Button.inline("⚡️ Max Downloads", b"admin:set_max_dl")],
         [Button.inline("⬅️ Back", b"admin:back_main")]
     ]
@@ -428,7 +445,15 @@ async def handle_admin_input(event):
         del USER_CONTEXT[user_id]
         return await event.reply("✅ လုပ်ဆောင်ချက်ကို ပယ်ဖျက်လိုက်ပါသည်။")
 
-    if action == 'awaiting_upload_channel_id':
+    if action == 'awaiting_force_join_id':
+        if re.match(r'^-100\d+$', text):
+            await db.set_setting('PRIVATE_CHANNEL_ID', text)
+            await event.reply(f"✅ Force-Join Channel ID ကို `{text}` သို့ ပြောင်းလဲလိုက်ပါသည်။")
+            del USER_CONTEXT[user_id]
+        else:
+            await event.reply("❌ **မှားယွင်းနေသည်!** Channel ID သည် `-100` ဖြင့်စရပါမည်။ ထပ်ကြိုးစားပါ။\n`/cancel` ဖြင့် ပယ်ဖျက်နိုင်ပါသည်။")
+            
+    elif action == 'awaiting_upload_channel_id':
         if re.match(r'^-100\d+$', text):
             await db.set_setting('UPLOAD_CHANNEL_ID', text)
             await event.reply(f"✅ Upload Channel ID ကို `{text}` သို့ ပြောင်းလဲလိုက်ပါသည်။")
@@ -436,6 +461,14 @@ async def handle_admin_input(event):
         else:
             await event.reply("❌ **မှားယွင်းနေသည်!** Channel ID သည် `-100` ဖြင့်စရပါမည်။ ထပ်ကြိုးစားပါ။\n`/cancel` ဖြင့် ပယ်ဖျက်နိုင်ပါသည်။")
     
+    elif action == 'awaiting_invite_link':
+        if re.match(r'https?://t\.me/\S+', text):
+            await db.set_setting('PRIVATE_CHANNEL_INVITE_LINK', text)
+            await event.reply(f"✅ Force-Join Invite Link ကို `{text}` သို့ ပြောင်းလဲလိုက်ပါသည်။")
+            del USER_CONTEXT[user_id]
+        else:
+            await event.reply("❌ **မှားယွင်းနေသည်!** မှန်ကန်သော Telegram Invite Link (`https://t.me/...`) ကိုထည့်ပါ။\n`/cancel` ဖြင့် ပယ်ဖျက်နိုင်ပါသည်။")
+
     elif action == 'awaiting_upload_invite_link':
         if re.match(r'https?://t\.me/\S+', text):
             await db.set_setting('UPLOAD_CHANNEL_INVITE_LINK', text)
@@ -505,7 +538,7 @@ async def admin_state_handler(event):
                 await event.reply("📲 Telegram မှ ပေးပို့လိုက်သော Code ကို ထည့်ပါ။")
             elif step == 'awaiting_code':
                 try:
-                    await uploader.sign_in(state['phone'], code=text, phone_code_hash=state['phone_code_hash'])
+                    await uploader.sign_in(state['phone'], code=text, phone_code_hash=state[phone_code_hash'])
                     me = await uploader.get_me()
                     await event.reply(f"✅ Login အောင်မြင်ပါသည်။ Welcome, **{me.first_name}**!")
                     del LOGIN_STATE[user_id]
@@ -551,7 +584,7 @@ async def broadcast_message_handler(event):
         [Button.inline("❌ No, Cancel", b"admin:broadcast_cancel")]
     ])
 
-# Main user message handler (NO FORCE-JOIN CHECK)
+# Main user message handler
 @bot.on(events.NewMessage(func=lambda e: e.is_private and not e.forward and (e.text and not e.text.startswith('/'))))
 async def main_message_handler(event):
     user_id = event.sender_id
@@ -566,11 +599,15 @@ async def main_message_handler(event):
     text = event.text.strip()
     if not re.match(r'(?i)https?://\S+', text): return
 
-    # Force-Join check ကို လုံးဝဖယ်ရှားလိုက်ပါပြီ
-    # အောက်ပါစစ်ဆေးချက်မရှိတော့ပါ
+    invite_link = await db.get_setting('PRIVATE_CHANNEL_INVITE_LINK')
+    if not await is_user_subscribed(user_id):
+        join_msg = (f"**ACCESS DENIED** 😕\n\n"
+                    f"Bot ကိုအသုံးပြုရန် အောက်ပါ Channel ကို Join ပေးပါ။\n\n"
+                    f"➡️ [Click to Join Channel]({invite_link})")
+        return await event.reply(join_msg, buttons=[Button.url("👉 Channel ကို Join ရန် 👈", invite_link)])
 
     if not uploader.is_connected() or not await uploader.is_user_authorized():
-        return await event.reply("⚠️ Bot ကို ပြုပြင်ထိန်းသိမ်းနေပါသည် Admin ကိုဆက်သွယ်ပါ @Hub_Offical")
+        return await evply("⚠️ Bot ကို ပြုပြင်ထိန်းသိမ်းနေပါသည် Admin ကိုဆက်သွယ်ပါ @Hub_Offical")
     
     task_id = f"{user_id}_{int(time.time() * 1000)}"
     msg = await event.reply("🔎 **သင်၏ Link ကို စစ်ဆေးနေပါသည်...**")
@@ -675,10 +712,18 @@ async def callback_handler(event):
                 except OSError as e: logger.error(f"File ရှင်းလင်းရာတွင် အမှားဖြစ်ပေါ်: {f}: {e}")
             await msg.edit(f"✅ **Clean Up Complete!**\n`{count}` ဖိုင် (စုစုပေါင်း `{human_readable_size(total_size)}`) ကို ရှင်းလင်းပြီးပါပြီ။", buttons=[[Button.inline("⬅️ Back", b"admin:maintenance")]])
         
+        elif action == 'set_force_join_id':
+            USER_CONTEXT[user_id] = {'admin_action': 'awaiting_force_join_id'}
+            await event.edit("🆔 **Set Force-Join Channel ID**\n\nUser တွေ မဖြစ်မနေ Join ရမယ့် Channel ID ကို ပေးပို့ပါ (ဥပမာ: `-100123...`)။\n\n`/cancel` ဖြင့် ပယ်ဖျက်ပါ။", buttons=None)
+        
         elif action == 'set_upload_channel_id':
             USER_CONTEXT[user_id] = {'admin_action': 'awaiting_upload_channel_id'}
             await event.edit("📤 **Set Upload Channel ID**\n\nVideo တွေ upload တင်မယ့် Channel ID ကို ပေးပို့ပါ (ဥပမာ: `-100123...`)။\n\n`/cancel` ဖြင့် ပယ်ဖျက်ပါ။", buttons=None)
 
+        elif action == 'set_invite_link':
+            USER_CONTEXT[user_id] = {'admin_action': 'awaiting_invite_link'}
+            await event.edit("🔗 **Set Force-Join Invite Link**\n\nForce-Join Channel အတွက် Invite Link အသစ်ကို ပေးပို့ပါ။\n\n`/cancel` ဖြင့် ပယ်ဖျက်ပါ။", buttons=None)
+        
         elif action == 'set_upload_invite_link':
             USER_CONTEXT[user_id] = {'admin_action': 'awaiting_upload_invite_link'}
             await event.edit("🔗 **Set Upload Invite Link**\n\nUpload Channel အတွက် Invite Link အသစ်ကို ပေးပို့ပါ။\n\n`/cancel` ဖြင့် ပယ်ဖျက်ပါ။", buttons=None)
@@ -727,10 +772,10 @@ async def callback_handler(event):
         
         if action == 'cancel':
             sub_action = value
-            if sub_action == 'op':
+            if sub_action == 'op': # Cancel operation selection
                 if task_id in USER_CONTEXT: del USER_CONTEXT[task_id]
                 await event.edit("✅ လုပ်ဆောင်ချက်ကို ပယ်ဖျက်လိုက်ပါသည်။", buttons=None)
-            elif sub_action == 'dl':
+            elif sub_action == 'dl': # Cancel download
                 USER_CONTEXT[task_id]['cancelled'] = True
                 await event.answer("🚫 ဒေါင်းလုဒ်ကို ရပ်တန့်ရန် တောင်းဆိုလိုက်ပါပြီ...")
         
@@ -738,8 +783,7 @@ async def callback_handler(event):
             await event.answer()
             quality_text = value if value == 'audio' else value + 'p'
             cancel_button = [[Button.inline("❌ Cancel Download", f"cancel:dl:{task_id}")]]
-            try:
-                await event.edit(
+                           await event.edit(
                     f"✅ **Quality: `{quality_text}`**\n\n📥 ဒေါင်းလုဒ်ရန်ပြင်ဆင်နေပါသည်ခဏစောင့်ပါ..",
                     buttons=cancel_button, file=None)
             except MessageNotModifiedError: pass
@@ -774,12 +818,14 @@ async def handle_video_download(task_id, quality):
                         p = (downloaded_bytes / total_bytes) * 100
                         bar = "■" * int(p / 10) + "□" * (10 - int(p / 10))
                         
+                        # -- REVISED CLEANER PROGRESS DISPLAY --
                         progress_text = (
                             f"**📥 Downloading...**\n`{title}`\n\n"
                             f"╔═⍟`{bar} {p:.1f}%`\n"
                             f"╠════◆\n╠`{human_readable_size(downloaded_bytes)} / {human_readable_size(total_bytes)}`\n╚═══◆\n"
                             f"╔══◆**Speed:** `{d.get('_speed_str', 'N/A').strip()}` \n╚══◆**ETA:** `{d.get('_eta_str', 'N/A').strip()}`"
                         )
+                        # ------------------------------------
 
                         asyncio.run_coroutine_threadsafe(
                             status_message.edit(
@@ -877,7 +923,7 @@ async def handle_video_download(task_id, quality):
                     except (MessageNotModifiedError, Exception): pass
                     last_upload_update_time = time.time()
             
-            # Attributes သတ်မှတ်ခြင်း (Video နဲ့ Audio ခွဲခြားသတ်မှတ်သည်)
+                        # Attributes သတ်မှတ်ခြင်း (Video နဲ့ Audio ခွဲခြားသတ်မှတ်သည်)
             duration = int(context.get('duration', 0))
             if ext == 'mp4':
                 attrs = [DocumentAttributeVideo(
@@ -888,8 +934,8 @@ async def handle_video_download(task_id, quality):
             elif ext == 'mp3':
                 attrs = [DocumentAttributeAudio(
                     duration=duration,
-                    title=title,
-                    performer="Hub Downloader"
+                    title=title,  # သီချင်းခေါင်းစဉ်
+                    performer="Hub Downloader" # Artist နေရာမှာ ပြမည့်အမည် (ကြိုက်တာပြောင်းလို့ရပါတယ်)
                 )]
             else:
                 attrs = []
@@ -907,20 +953,24 @@ async def handle_video_download(task_id, quality):
             
             await db.increment_bot_stat('total_downloads')
 
-            # Admin Notification Logic
+            # --- REVISED ADMIN NOTIFICATION LOGIC ---
             if context['user_id'] == ADMIN_ID and destination != ADMIN_ID:
                 try:
                     dest_id = int(str(destination).replace('-100', ''))
                     post_link = f"https://t.me/c/{dest_id}/{sent_message.id}"
                     
+                    # Fetch the upload channel invite link
                     upload_invite_link = await db.get_setting('UPLOAD_CHANNEL_INVITE_LINK')
 
+                    # Prepare buttons
                     notification_buttons = [Button.url("🔗 View Post", post_link)]
                     if upload_invite_link and upload_invite_link != 'https://t.me/your_upload_channel_link':
                         notification_buttons.append(Button.url("📤 Channel Link", upload_invite_link))
                     
+                    # Prepare caption for the notification
                     notification_caption = f"✅ **Post Created Successfully!**\n\n{final_caption}"
             
+                    # Send notification with thumbnail
                     if thumb_path and os.path.exists(thumb_path):
                         await bot.send_file(
                             ADMIN_ID,
@@ -928,7 +978,7 @@ async def handle_video_download(task_id, quality):
                             caption=notification_caption,
                             buttons=[notification_buttons]
                         )
-                    else:
+                    else: # Fallback to text if no thumbnail
                         await bot.send_message(
                             ADMIN_ID,
                             notification_caption,
@@ -938,6 +988,7 @@ async def handle_video_download(task_id, quality):
                 except Exception as e:
                     logger.error(f"Failed to send enhanced admin notification: {e}")
                     await bot.send_message(ADMIN_ID, f"✅ Post Created Successfully, but notification failed.\n\n(Could not generate post link for destination: {destination})")
+            # ----------------------------------------
 
         except yt_dlp.utils.DownloadError as de:
             error_msg = str(de)
@@ -993,3 +1044,5 @@ if __name__ == '__main__':
     try: asyncio.run(main())
     except (KeyboardInterrupt, SystemExit): logger.info("Bot ကို အောင်မြင်စွာ ရပ်တန့်လိုက်ပါသည်။")
     except Exception as e: logger.critical("Bot စတင်ရာတွင် သို့မဟုတ် အလုပ်လုပ်ရာတွင် အမှားအယွင်းကြီးတစ်ခု ဖြစ်ပေါ်နေပါသည်။", exc_info=True)
+
+
