@@ -406,7 +406,7 @@ async def show_settings_menu(event):
     )
     settings_buttons = [
         [Button.inline("🆔 Force-Join ID", b"admin:set_force_join_id"), Button.inline("🔗 Set Force-Join Link", b"admin:set_invite_link")],
-        [Button.inline("📤 Set Upload Channel ID", b"admin:set_upload_channel_id"), Button.inline("🔗 Upload Invite Link", b"admin:set_upload_invite_link")],
+        [Button.inline("📤 Set Upload Channel ID", b"admin:set_upload_channel_id"), Button.inli("🔗 Upload Invite Link", b"admin:set_upload_invite_link")],
         [Button.inline("⚡️ Max Downloads", b"admin:set_max_dl")],
         [Button.inline("⬅️ Back", b"admin:back_main")]
     ]
@@ -607,7 +607,7 @@ async def main_message_handler(event):
         return await event.reply(join_msg, buttons=[Button.url("👉 Channel ကို Join ရန် 👈", invite_link)])
 
     if not uploader.is_connected() or not await uploader.is_user_authorized():
-        return await event.reply("⚠️ Bot ကို ပြုပြင်ထိန်းသိမ်းနေပါသည် Admin ကိုဆက်သွယ်ပါ @thuyaaungzaw")
+        return await evply("⚠️ Bot ကို ပြုပြင်ထိန်းသိမ်းနေပါသည် Admin ကိုဆက်သွယ်ပါ @thuyaaungzaw")
     
     task_id = f"{user_id}_{int(time.time() * 1000)}"
     msg = await event.reply("🔎 **သင်၏ Link ကို စစ်ဆေးနေပါသည်...**")
@@ -783,17 +783,14 @@ async def callback_handler(event):
             await event.answer()
             quality_text = value if value == 'audio' else value + 'p'
             cancel_button = [[Button.inline("❌ Cancel Download", f"cancel:dl:{task_id}")]]
-            try:
-                await event.edit(
+        await event.edit(
                     f"✅ **Quality: `{quality_text}`**\n\n📥 ဒေါင်းလုဒ်ရန်ပြင်ဆင်နေပါသည်ခဏစောင့်ပါ..",
-                    buttons=cancel_button, file=None
-                )
-            except MessageNotModifiedError: 
-                pass
-            asyncio.create_task(handle_video_download(task_id, value))
+                    buttons=cancel_button, file=None)
+        except MessageNotModifiedError: pass
+        asyncio.create_task(handle_video_download(task_id, value))
             
-        elif action == 'dest':
-            if 'admin_choice_future' in context and not context['admin_choice_future'].done():
+    elif action == 'dest':
+        if 'admin_choice_future' in context and not context['admin_choice_future'].done():
                 context['admin_choice_future'].set_result(value)
 
 async def handle_video_download(task_id, quality):
@@ -884,7 +881,7 @@ async def handle_video_download(task_id, quality):
             await status_message.edit("✅ **Download ပြီးပါပြီ**\n\n⬆️ ယခု Telegram သို့ တင်နေပါသည်...", buttons=None)
             
             file_size_str = human_readable_size(file_size)
-            final_caption = f"**{title}**\n\n💾 **Size:** `{file_size_str}`\n\n**Bot အများကြီးထဲမှဒီBot လေးကိုရွေးပြီးအသုံးပြုလို့ များစွာပိတီဖြစ်မိပါတယ် ဒီထက်ပိုကောင်းမွန်အောင် အများကြီးကြိုးစားပါအုံးမယ်ဗျာ**\n\n╔═◆အကူအညီရယူရန်\n╚═════◆Bot Owner @thuyaaungzaw"
+            final_caption = f"**{title}**\n\n💾 **Size:** `{file_size_str}`\n\n**Bot အများကြီးထဲမှဒီBot လေးကိုရွေးပြီးအသုံးပြုလို့ များစွာပိတီဖြစ်မိပါတယ် ဒီထက်ပိုကောင်းမွန်အောင် အများကြီးကြိုးစားပါအုံးမယ်ဗျာ \n\n**╔═◆အကူအညီရယူရန်\n╚═════◆Bot Owner @thuyaaungzaw "
             sender_client, destination = bot, context['user_id']
             
             if context['user_id'] == ADMIN_ID:
@@ -926,7 +923,7 @@ async def handle_video_download(task_id, quality):
                     except (MessageNotModifiedError, Exception): pass
                     last_upload_update_time = time.time()
             
-            # Attributes သတ်မှတ်ခြင်း (Video နဲ့ Audio ခွဲခြားသတ်မှတ်သည်)
+                        # Attributes သတ်မှတ်ခြင်း (Video နဲ့ Audio ခွဲခြားသတ်မှတ်သည်)
             duration = int(context.get('duration', 0))
             if ext == 'mp4':
                 attrs = [DocumentAttributeVideo(
@@ -938,7 +935,7 @@ async def handle_video_download(task_id, quality):
                 attrs = [DocumentAttributeAudio(
                     duration=duration,
                     title=title,  # သီချင်းခေါင်းစဉ်
-                    performer="Team 7 Downloader" # Artist နေရာမှာ ပြမည့်အမည် (ကြိုက်တာပြောင်းလို့ရပါတယ်)
+                    performer=Team 7 Downloader" # Artist နေရာမှာ ပြမည့်အမည် (ကြိုက်တာပြောင်းလို့ရပါတယ်)
                 )]
             else:
                 attrs = []
@@ -1047,3 +1044,4 @@ if __name__ == '__main__':
     try: asyncio.run(main())
     except (KeyboardInterrupt, SystemExit): logger.info("Bot ကို အောင်မြင်စွာ ရပ်တန့်လိုက်ပါသည်။")
     except Exception as e: logger.critical("Bot စတင်ရာတွင် သို့မဟုတ် အလုပ်လုပ်ရာတွင် အမှားအယွင်းကြီးတစ်ခု ဖြစ်ပေါ်နေပါသည်။", exc_info=True)
+
